@@ -5,19 +5,20 @@ Reproducing the experiment of fit_mante many times.
 """
 
 import sys
+import numpy as np
 sys.path.append('../')
 from low_rank_rnns.modules import *
 from low_rank_rnns import mante, helpers, stats
 
-N_REPS = 10  # Number of full-rank networks on which the experiment is performed
-N_REREPS = 3  # Number of low-rank nets of each rank that will be fitted to the full-rank one.
-N_RANKS = 5
+N_REPS = 1  # Number of full-rank networks on which the experiment is performed
+N_REREPS = 1  # Number of low-rank nets of each rank that will be fitted to the full-rank one.
+N_RANKS = 1
 
 batch = 3
 size = 1024
 noise_std = 5e-2
 alpha = .2
-n_epochs = 500
+n_epochs = 500   # manimum number of trainin epochs
 rho = 1.
 lr = 1e-3
 
@@ -52,7 +53,11 @@ for i in range(N_REPS):
 
     _, traj1 = net.forward(x_val, return_dynamics=True)
     traj1 = net.non_linearity(traj1)
-    y1 = traj1.detach().numpy().ravel()
+    y1 = traj1.detach().numpy()
+    np.savez('../models/mante_many/fullRankNeuralTrajectories.npz', 
+        neuTraj=y1, inputs=x_val.detach().numpy(), target=y_val.detach().numpy())
+    print("saved the raw fullRank neural trajectories")
+    y1 = y1.ravel()
 
     # Truncated networks
     J = net.wrec.detach().numpy()
@@ -79,9 +84,12 @@ for i in range(N_REPS):
             out2, traj2 = net2.forward(x_val, return_dynamics=True)
 
             traj2 = net2.non_linearity(traj2)
-            y2 = traj2.detach().numpy().ravel()
+            y2 = traj2.detach().numpy()
+            np.savez('../models/mante_many/lowRankNeuralTrajectories.npz', neuTraj=y2)
+            y2 = y2.ravel()
             print(y1.shape)
             print(y2.shape)
+
             r2 = stats.r2_score(y1, y2)
             print(r2)
             r2s_fit[i, j, rank-1] = r2
